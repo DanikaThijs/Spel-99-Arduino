@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "stdlib.h": "c",
+        "buzzer.h": "c",
+        "delay.h": "c",
+        "display.h": "c",
+        "button.h": "c",
+        "leds.h": "c"
+    }
+}
