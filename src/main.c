@@ -10,6 +10,7 @@
 #include <button.h>
 #include <Buzzer.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 // declaraties
 // als speler 0 is is het de Computer als speler 1 is het de echte persoon als speler
@@ -25,7 +26,8 @@ int speler;
 int gameStarted = 0;
 int dobelsteenGrote = 6;
 int aantalWorpen;
-int worp;
+int worp = 0;
+int somWorpenBeurt;
 
 // index 0 is altijd de computer en de speler is index 1
 int scoresSpelers[] = {0, 0};
@@ -43,12 +45,20 @@ ISR(PCINT1_vect)
     // knop 1 is ingedrukt (bit staat op 0)?
     if ((bit_is_clear(BUTTON_PIN, BUTTON1) || bit_is_clear(BUTTON_PIN, BUTTON2) || bit_is_clear(BUTTON_PIN, BUTTON3)) && gameStarted == 0)
     {
+      _delay_ms(50);
       gameStarted = 1;
       startSpel();
     }
-    else if ((bit_is_clear(BUTTON_PIN, BUTTON1) || gameStarted == 1 && !bit_is_clear(BUTTON_PIN, BUTTON2) || !bit_is_clear(BUTTON_PIN, BUTTON3)))
+    if (bit_is_clear(BUTTON_PIN, BUTTON1) && gameStarted == 1)
     {
+      _delay_ms(50);
       werpDobelsteen();
+    }
+    if (bit_is_clear(BUTTON_PIN, BUTTON3) && gameStarted == 1)
+    {
+      _delay_ms(50);
+      scoresSpelers[speler] += somWorpenBeurt;
+      veranderenVanSpeler();
     }
   }
 }
@@ -85,8 +95,7 @@ int main(void)
 void startSpel()
 {
   printf("\n\nspel gestart");
-
-  if (random(getPotentiometerWaarde()) % 2 == 0)
+  if ((rand() % getPotentiometerWaarde()) % 2 == 0)
   {
     speler = 0;
   }
@@ -107,42 +116,44 @@ void toonscherm()
   else
   {
     writeCharToSegment(1, letterSpeler[speler]);
-    writeNumerToSideSegment(1, scoresSpelers[speler]);
+    writeNumerToSideSegment(1, somWorpenBeurt);
 
-    if (aantalWorpen>0)
+    if (aantalWorpen > 0)
     {
       writeNumberToSegment(0, worp);
     }
-    
   }
-
 }
 
 void werpDobelsteen()
 {
-  printf("\n\dobbelsteen geworpen");
-  worp = random(dobelsteenGrote) + 1;
+  worp = (rand() % 6) + 1;
+  printf("\n\ dobbelsteen geworpen worp is: %d\n", worp);
   aantalWorpen++;
-  scoresSpelers[speler] += worp;
-
+  somWorpenBeurt += worp;
+  toonscherm();
   if (worp == 1)
   {
-    //De speler zijn score terug op nul zetten
-    scoresSpelers[speler] = 0;
-
-    //van speler veranderen
-    if (speler == 0)
-    {
-      speler = 1;
-    }
-    else{
-      speler = 0;
-    }
-    
+    veranderenVanSpeler();
   }
-  
 }
 
+void veranderenVanSpeler()
+{
+  printf("\n\veranderd van speler.");
+  // De speler zijn score terug op nul zetten
+  worp = 0;
+  // van speler veranderen
+  if (speler == 0)
+  {
+    speler = 1;
+  }
+  else
+  {
+    speler = 0;
+  }
+  somWorpenBeurt = scoresSpelers[speler];
+}
 void timer()
 {
   // STAP 1: kies de WAVE FORM en dus de Mode of Operation
