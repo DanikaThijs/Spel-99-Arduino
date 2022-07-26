@@ -24,8 +24,9 @@
 int speler;
 int gameStarted = 0;
 
-int totaalComputer = 0;
-int totaalSpeler = 0;
+// index 0 is altijd de computer en de speler is index 1
+int scoresSpelers[] = {0, 0};
+char letterSpeler[] = {'C', 'P'};
 
 int worp;
 
@@ -51,11 +52,8 @@ int main(void)
 {
   initUSART();
   initDisplay();
+  initPotentiometer();
 
-  startScreen();
-}
-void startScreen()
-{
   printf("\n\ndruk op eender welke knop om het spel te starten");
   BUTTON_DDR &= ~_BV(BUTTON1); // we gaan alle knoppen gebruiken gebruiken
   BUTTON_DDR &= ~_BV(BUTTON2);
@@ -79,7 +77,7 @@ void startSpel()
 {
   printf("\n\nspel gestart");
 
-  if (random(100) % 2 == 0)
+  if (random(getPotentiometerWaarde()) % 2 == 0)
   {
     speler = 0;
   }
@@ -96,20 +94,14 @@ void toonscherm()
 {
   if (gameStarted == 0)
   {
-    writeCharToSegment(1, '9');
-    writeCharToSegment(2, '9');
+    writeNumberToSegment(1, 9);
+    writeNumberToSegment(2, 9);
+    /* code */
   }
   else
   {
-    if (speler == 0)
-    {
-      writeCharToSegment(1, 'C');
-    }
-
-    else
-    {
-      writeCharToSegment(1, 'P');
-    }
+    writeCharToSegment(1, letterSpeler[speler]);
+    writeNumerToSideSegment(1, scoresSpelers[speler]);
   }
 }
 
