@@ -23,12 +23,13 @@
 
 int speler;
 int gameStarted = 0;
+int dobelsteenGrote = 6;
+int aantalWorpen;
+int worp;
 
 // index 0 is altijd de computer en de speler is index 1
 int scoresSpelers[] = {0, 0};
 char letterSpeler[] = {'C', 'P'};
-
-int worp;
 
 // Deze ISR wordt aangeroepen als Pin Change Interrupt 1 afgaat (PCINT1_vect)
 // Dit is de interrupt voor PORTC, die waarop de knopjes hangen...
@@ -45,6 +46,10 @@ ISR(PCINT1_vect)
       gameStarted = 1;
       startSpel();
     }
+    else if ((bit_is_clear(BUTTON_PIN, BUTTON1) || gameStarted == 1 && !bit_is_clear(BUTTON_PIN, BUTTON2) || !bit_is_clear(BUTTON_PIN, BUTTON3)))
+    {
+      werpDobelsteen();
+    }
   }
 }
 
@@ -58,12 +63,16 @@ int main(void)
   BUTTON_DDR &= ~_BV(BUTTON1); // we gaan alle knoppen gebruiken gebruiken
   BUTTON_DDR &= ~_BV(BUTTON2);
   BUTTON_DDR &= ~_BV(BUTTON3);
+
   BUTTON_PORT |= _BV(BUTTON1); // pull up aanzetten
-  PCICR |= _BV(PCIE1);         // in Pin Change Interrupt Control Register: geef aan
-                               // welke interrupt(s) je wil activeren (PCIE0: poort B,
-                               // PCIE1: poort C, PCIE2: poort D)
-  PCMSK1 |= _BV(BUTTON1);      // in overeenkomstig Pin Change Mask Register: geef
-  PCMSK1 |= _BV(BUTTON2);      // aan welke pin(s) van die poort de ISR activeren
+  BUTTON_PORT |= _BV(BUTTON2);
+  BUTTON_PORT |= _BV(BUTTON3);
+
+  PCICR |= _BV(PCIE1);    // in Pin Change Interrupt Control Register: geef aan
+                          // welke interrupt(s) je wil activeren (PCIE0: poort B,
+                          // PCIE1: poort C, PCIE2: poort D)
+  PCMSK1 |= _BV(BUTTON1); // in overeenkomstig Pin Change Mask Register: geef
+  PCMSK1 |= _BV(BUTTON2); // aan welke pin(s) van die poort de ISR activeren
   PCMSK1 |= _BV(BUTTON3);
 
   sei(); // Set Enable Interrupts --> globaal interrupt systeem aanzetten
@@ -86,8 +95,6 @@ void startSpel()
   {
     speler = 1;
   }
-
-  toonscherm();
 }
 
 void toonscherm()
@@ -96,13 +103,44 @@ void toonscherm()
   {
     writeNumberToSegment(1, 9);
     writeNumberToSegment(2, 9);
-    /* code */
   }
   else
   {
     writeCharToSegment(1, letterSpeler[speler]);
     writeNumerToSideSegment(1, scoresSpelers[speler]);
+
+    if (aantalWorpen>0)
+    {
+      writeNumberToSegment(0, worp);
+    }
+    
   }
+
+}
+
+void werpDobelsteen()
+{
+  printf("\n\dobbelsteen geworpen");
+  worp = random(dobelsteenGrote) + 1;
+  aantalWorpen++;
+  scoresSpelers[speler] += worp;
+
+  if (worp == 1)
+  {
+    //De speler zijn score terug op nul zetten
+    scoresSpelers[speler] = 0;
+
+    //van speler veranderen
+    if (speler == 0)
+    {
+      speler = 1;
+    }
+    else{
+      speler = 0;
+    }
+    
+  }
+  
 }
 
 void timer()
