@@ -1,3 +1,9 @@
+void startSpel(void);
+void toonScherm(void);
+void werpDobbelsteen(void);
+void veranderenVanSpeler(void);
+void timer(void);
+
 // includes
 #include <util/delay.h>
 #include <display.h>
@@ -21,6 +27,7 @@
 #define BUTTON1 PC1
 #define BUTTON2 PC2
 #define BUTTON3 PC3
+
 
 int speler;
 int gameStarted = 0;
@@ -52,7 +59,7 @@ ISR(PCINT1_vect)
     if (bit_is_clear(BUTTON_PIN, BUTTON1) && gameStarted == 1)
     {
       _delay_ms(50);
-      werpDobelsteen();
+      werpDobbelsteen();
     }
     if (bit_is_clear(BUTTON_PIN, BUTTON3) && gameStarted == 1)
     {
@@ -88,7 +95,7 @@ int main(void)
   sei(); // Set Enable Interrupts --> globaal interrupt systeem aanzetten
   while (1)
   {
-    toonscherm();
+    toonScherm();
   }
 }
 
@@ -106,7 +113,7 @@ void startSpel()
   }
 }
 
-void toonscherm()
+void toonScherm()
 {
   if (gameStarted == 0)
   {
@@ -116,7 +123,7 @@ void toonscherm()
   else
   {
     writeCharToSegment(1, letterSpeler[speler]);
-    writeNumerToSideSegment(1, somWorpenBeurt);
+    writeNumberToTwoSegments(1, somWorpenBeurt);
 
     if (aantalWorpen > 0)
     {
@@ -125,13 +132,13 @@ void toonscherm()
   }
 }
 
-void werpDobelsteen()
+void werpDobbelsteen()
 {
   worp = (rand() % 6) + 1;
-  printf("\n\ dobbelsteen geworpen worp is: %d\n", worp);
+  printf("dobbelsteen geworpen worp is: %d\n", worp);
   aantalWorpen++;
   somWorpenBeurt += worp;
-  toonscherm();
+  toonScherm();
   if (worp == 1)
   {
     veranderenVanSpeler();
