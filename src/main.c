@@ -15,13 +15,12 @@
 #include <stdlib.h>
 
 // declaraties
-// als speler 0 is is het de Computer als speler 1 is het de echte persoon als speler
 void startGame(void);
 void showScreen(void);
 void throwDice(void);
 void changePlayer(void);
 void checkEndGame(void);
-void timer(void);
+void initTimer0(void);
 
 #define BUTTON_PORT PORTC
 #define BUTTON_PIN PINC
@@ -30,6 +29,7 @@ void timer(void);
 #define BUTTON2 PC2
 #define BUTTON3 PC3
 
+// als speler 0 is is het de Computer als speler 1 is het de echte persoon als speler
 int player;
 int gameStarted = 0;
 int diceSize = 6;
@@ -53,18 +53,14 @@ ISR(PCINT1_vect)
     // knop 1 is ingedrukt (bit staat op 0)?
     if ((bit_is_clear(BUTTON_PIN, BUTTON1) || bit_is_clear(BUTTON_PIN, BUTTON2) || bit_is_clear(BUTTON_PIN, BUTTON3)) && gameStarted == 0)
     {
-      _delay_ms(50);
-      gameStarted = 1;
       startGame();
     }
-    if (bit_is_clear(BUTTON_PIN, BUTTON1) && gameStarted == 1)
+    if (gameStarted == 1 && bit_is_clear(BUTTON_PIN, BUTTON1))
     {
-      _delay_ms(50);
       throwDice();
     }
-    if (bit_is_clear(BUTTON_PIN, BUTTON3) && gameStarted == 1)
+    if (gameStarted == 1 && bit_is_clear(BUTTON_PIN, BUTTON3))
     {
-      _delay_ms(50);
       scoresplayers[player] += sumOfThrows;
       changePlayer();
     }
@@ -76,6 +72,7 @@ int main(void)
   initUSART();
   initDisplay();
   initPotentiometer();
+  initTimer0();
 
   printf("\n\ndruk op eender welke knop om het spel te starten");
   BUTTON_DDR &= ~_BV(BUTTON1); // we gaan alle knoppen gebruiken gebruiken
@@ -96,7 +93,6 @@ int main(void)
   sei(); // Set Enable Interrupts --> globaal interrupt systeem aanzetten
   while (1)
   {
-    showScreen();
   }
 }
 
@@ -115,7 +111,9 @@ void startGame()
   {
     player = 1;
   }
+  gameStarted = 1;
 }
+
 
 void showScreen()
 {
@@ -144,6 +142,9 @@ void throwDice()
   sumOfThrows += throw;
   if (throw == 1)
   {
+    showScreen();
+    initBuzzer();
+    playTone(getPotentiometerWaarde(), 500);
     changePlayer();
   }
 }
@@ -151,7 +152,7 @@ void throwDice()
 void changePlayer()
 {
   printf("\nveranderd van speler.\n");
-  // De speler zijn score terug op nul zetten
+  // De speler zijn worp terug op nul zetten
   throw = 0;
   // van speler veranderen
   if (player == 0)
@@ -165,9 +166,46 @@ void changePlayer()
   sumOfThrows = scoresplayers[player];
 }
 
-void timer()
-{
-  // STAP 1: kies de WAVE FORM en dus de Mode of Operation
-  // Hier kiezen we FAST PWM waardoor de TCNT0 steeds tot 255 telt
-  // TCCR0A |= _BV(WGM00) | _BV(WGM01); // WGM00 = 1 en WGM01 = 1 --> Fast PWM Mode
+void initTimer0() {
+    // STAP 1: kies de WAVE FORM en dus de Mode of Operation
+    // Hier kiezen we FAST PWM waardoor de TCNT0 steeds tot 255 telt
+    TCCR0A |= _BV(WGM00) | _BV(WGM01); // WGM00 = 1 en WGM01 = 1 --> Fast PWM Mode
+
+    // STAP 2: stel *altijd* een PRESCALER in, anders telt hij niet.
+    // De snelheid van tellen wordt bepaald door de CPU-klok (16Mhz) gedeeld door deze factor.
+    TCCR0B |= _BV(CS00); // CS02 = 1 en CS00 = 1 --> prescalerfactor is nu 1024 (=elke 64µs)
+
+    // STAP 3: enable INTERRUPTs
+    // Enable interrupts voor twee gevallen: TCNT0 == TOP en TCNT0 == OCR0A
+    TIMSK0 |= _BV(TOIE0); // overflow interrupt enablen
+    TIMSK0 |= _BV(OCIE0A); // OCRA interrupt enablen
+
+    sei(); // interrupts globaal enablen
+
+}
+
+// deze ISR runt telkens wanneer TCNT0 gelijk is aan de waarde in het OCRA-register
+ISR(TIMER0_COMPA_vect) {
+   showScreen();
+   if (sumOfThrows >= 99)
+   {
+      if (player == 1)
+      {
+        scrollingText("De computer is gewonnen!");
+      }
+      else{
+        scrollingText("De speler is gewonnen!");
+      }
+
+      gameStarted = 0;
+      
+   }
+   
+   PORTB &= ~(_BV(PB2) | _BV(PB3) | _BV(PB4) | _BV(PB5));
+}
+
+// deze ISR runt telkens wanneer TCNT0 gelijk is aan de waarde TOP-waarde (255)
+ISR(TIMER0_OVF_vect) {
+   showScreen();
+   PORTB |= _BV(PB2) | _BV(PB3) | _BV(PB4) | _BV(PB5);
 }
