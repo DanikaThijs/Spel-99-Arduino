@@ -1,8 +1,4 @@
-void startSpel(void);
-void toonScherm(void);
-void werpDobbelsteen(void);
-void veranderenVanSpeler(void);
-void timer(void);
+
 
 // includes
 #include <util/delay.h>
@@ -20,6 +16,12 @@ void timer(void);
 
 // declaraties
 // als speler 0 is is het de Computer als speler 1 is het de echte persoon als speler
+void startGame(void);
+void showScreen(void);
+void throwDice(void);
+void changePlayer(void);
+void checkEndGame(void);
+void timer(void);
 
 #define BUTTON_PORT PORTC
 #define BUTTON_PIN PINC
@@ -28,17 +30,16 @@ void timer(void);
 #define BUTTON2 PC2
 #define BUTTON3 PC3
 
-
-int speler;
+int player;
 int gameStarted = 0;
-int dobelsteenGrote = 6;
-int aantalWorpen;
-int worp = 0;
-int somWorpenBeurt;
+int diceSize = 6;
+int sumOfThrows;
+int throw = 0;
+int amountOfThrows = 0;
 
 // index 0 is altijd de computer en de speler is index 1
-int scoresSpelers[] = {0, 0};
-char letterSpeler[] = {'C', 'P'};
+int scoresplayers[] = {0, 0};
+char letterplayers[] = {'C', 'P'};
 
 // Deze ISR wordt aangeroepen als Pin Change Interrupt 1 afgaat (PCINT1_vect)
 // Dit is de interrupt voor PORTC, die waarop de knopjes hangen...
@@ -54,18 +55,18 @@ ISR(PCINT1_vect)
     {
       _delay_ms(50);
       gameStarted = 1;
-      startSpel();
+      startGame();
     }
     if (bit_is_clear(BUTTON_PIN, BUTTON1) && gameStarted == 1)
     {
       _delay_ms(50);
-      werpDobbelsteen();
+      throwDice();
     }
     if (bit_is_clear(BUTTON_PIN, BUTTON3) && gameStarted == 1)
     {
       _delay_ms(50);
-      scoresSpelers[speler] += somWorpenBeurt;
-      veranderenVanSpeler();
+      scoresplayers[player] += sumOfThrows;
+      changePlayer();
     }
   }
 }
@@ -95,25 +96,28 @@ int main(void)
   sei(); // Set Enable Interrupts --> globaal interrupt systeem aanzetten
   while (1)
   {
-    toonScherm();
+    showScreen();
   }
 }
 
-void startSpel()
+void startGame()
 {
+
+  srand(getPotentiometerWaarde());
+
   printf("\n\nspel gestart");
   if ((rand() % getPotentiometerWaarde()) % 2 == 0)
   {
-    speler = 0;
+    player = 0;
   }
 
   else
   {
-    speler = 1;
+    player = 1;
   }
 }
 
-void toonScherm()
+void showScreen()
 {
   if (gameStarted == 0)
   {
@@ -122,45 +126,45 @@ void toonScherm()
   }
   else
   {
-    writeCharToSegment(1, letterSpeler[speler]);
-    writeNumberToTwoSegments(1, somWorpenBeurt);
+    writeCharToSegment(1, letterplayers[player]);
+    writeNumberToTwoSegments(1, sumOfThrows);
 
-    if (aantalWorpen > 0)
+    if (amountOfThrows > 0)
     {
-      writeNumberToSegment(0, worp);
+      writeNumberToSegment(0, throw);
     }
   }
 }
 
-void werpDobbelsteen()
+void throwDice()
 {
-  worp = (rand() % 6) + 1;
-  printf("dobbelsteen geworpen worp is: %d\n", worp);
-  aantalWorpen++;
-  somWorpenBeurt += worp;
-  toonScherm();
-  if (worp == 1)
+  throw = (rand() % 6) + 1;
+  printf("dobbelsteen geworpen worp is: %d\n", throw);
+  amountOfThrows++;
+  sumOfThrows += throw;
+  if (throw == 1)
   {
-    veranderenVanSpeler();
+    changePlayer();
   }
 }
 
-void veranderenVanSpeler()
+void changePlayer()
 {
-  printf("\n\veranderd van speler.");
+  printf("\nveranderd van speler.\n");
   // De speler zijn score terug op nul zetten
-  worp = 0;
+  throw = 0;
   // van speler veranderen
-  if (speler == 0)
+  if (player == 0)
   {
-    speler = 1;
+    player = 1;
   }
   else
   {
-    speler = 0;
+    player = 0;
   }
-  somWorpenBeurt = scoresSpelers[speler];
+  sumOfThrows = scoresplayers[player];
 }
+
 void timer()
 {
   // STAP 1: kies de WAVE FORM en dus de Mode of Operation
