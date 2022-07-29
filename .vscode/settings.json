@@ -5,6 +5,9 @@
         "delay.h": "c",
         "display.h": "c",
         "button.h": "c",
-        "leds.h": "c"
+        "leds.h": "c",
+        "io.h": "c",
+        "stdbool.h": "c",
+        "interrupt.h": "c"
     }
 }
